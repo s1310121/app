@@ -550,7 +550,7 @@ function buildResultsCSVWide(resultsArr){
 
 document.getElementById("btnDownloadCSV")?.addEventListener("click", ()=>{
   const csv = buildResultsCSV(results);
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const blob = new Blob(["\uFEFF",csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -561,7 +561,7 @@ document.getElementById("btnDownloadCSV")?.addEventListener("click", ()=>{
 
 document.getElementById("btnDownloadCSVWide")?.addEventListener("click", ()=>{
   const csv = buildResultsCSVWide(results);
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const blob = new Blob(["\uFEFF",csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -843,7 +843,7 @@ function buildSpikeCSV(){
 
 btnDownloadSpikeCSV?.addEventListener("click", ()=>{
   const csv = buildSpikeCSV();
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const blob = new Blob(["\uFEFF",csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
