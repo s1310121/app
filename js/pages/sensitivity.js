@@ -22,7 +22,11 @@ function parseList(str){
 }
 
 function downloadText(filename, text, mime="text/csv;charset=utf-8"){
-  const blob = new Blob([text], { type: mime });
+  const needsBom = mime.toLowerCase().includes("text/csv");
+  const blob = needsBom
+    ? new Blob(["\uFEFF", text], { type: mime })
+    : new Blob([text], { type: mime });
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -148,4 +152,8 @@ $("btnRun").addEventListener("click", ()=>{
 
   setStatus(`完了: ${count} 通り（CSVを保存します）`);
   downloadText("sensitivity_sweep.csv", lines.join("\n"));
+});
+  setStatus(`完了: ${count} 通り（CSVを保存します）`);
+  downloadText("sensitivity_sweep.csv", lines.join("\n"));
+
 });
