@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./css/base.css" />
+  <title>Output</title>
+
+  <style>
+    .modal{ display:none; position:fixed; inset:0; z-index:9999; }
+    .modal.open{ display:block; }
+    .modal-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,0.35); }
+    .modal-panel{
+      position:relative;
+      margin: 24px auto;
+      max-width: 980px;
+      background:#fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+      overflow:hidden;
+    }
+    .modal-header{
+      display:flex; justify-content:space-between; align-items:center;
+      padding: 12px 14px; border-bottom:1px solid #eee;
+    }
+    .modal-body{ padding: 14px; }
+    #bodySvg rect, #bodySvg circle{
+      fill:#e0e0e0;
+      stroke:#666;
+      stroke-width:1;
+    }
+    .legend-box{
+      display:inline-block;
+      width:14px;
+      height:14px;
+      border-radius:4px;
+      vertical-align:middle;
+      margin-right:6px;
+      border:1px solid #bbb;
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>出力（検証ビュー）</h1>
+    <div class="toolbar">
+      <label>日付 <select id="dateSelect"></select></label>
+      <button id="btnBack" type="button">入力に戻る</button>
+      <button id="btnSensitivity" type="button">感度解析</button>
+      <button id="btnBodyView" type="button">人体ビュー</button>
+      <button id="btnSpikeDays" type="button">スパイク日一覧</button>
+      <button id="btnEnd" type="button">終了</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="cards">
+      <article class="card">
+        <h2>G(t)</h2>
+        <div id="cardG" class="big-number"></div>
+      </article>
+      <article class="card">
+        <h2>max S_k</h2>
+        <div class="row">
+          <div id="cardMaxS" class="big-number"></div>
+          <div id="cardMaxPart" class="tag"></div>
+        </div>
+      </article>
+      <article class="card">
+        <h2>警告</h2>
+        <div id="cardWarn" class="badge"></div>
+        <div class="muted">θ=<span id="thetaValue"></span></div>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h2>検証パネル</h2>
+
+      <details open>
+        <summary>入力整合</summary>
+        <div class="grid2">
+          <div>路面合計</div><div id="chkSurfaceSum"></div>
+          <div>上り+下り</div><div id="chkSlopeSum"></div>
+          <div>標準化有効</div><div id="chkStdReady"></div>
+        </div>
+      </details>
+
+      <details>
+        <summary>派生量</summary>
+        <div id="tableDerived"></div>
+      </details>
+
+      <details open>
+        <summary>外的・内的（内訳含む）</summary>
+        <div id="tableTotal"></div>
+      </details>
+
+      <details open>
+        <summary>保存則チェック</summary>
+        <div class="grid2">
+          <div>Σw_k</div><div id="chkSumW"></div>
+          <div>外的保存則誤差</div><div id="chkExtCons"></div>
+          <div>統合後保存則誤差</div><div id="chkTotalCons"></div>
+        </div>
+        <div class="muted" id="chkMessages"></div>
+      </details>
+
+      <details>
+        <summary>標準化（B=28 lag）</summary>
+        <div id="stdInfo"></div>
+      </details>
+
+      <details>
+        <summary>EWMA</summary>
+        <div id="ewmaInfo"></div>
+      </details>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>部位別詳細</h2>
+        <label class="toggle">
+          <input type="checkbox" id="toggleDetailCols" />
+          詳細列
+        </label>
+        <button id="btnCopyJson" type="button">JSONコピー</button>
+        <button id="btnDownloadJson" type="button">JSON保存</button>
+        <button id="btnDownloadCSV" type="button">結果CSV保存</button>
+        <button id="btnDownloadCSVWide" type="button">結果CSV保存（ワイド）</button>
+      </div>
+
+      <div id="spikeRank" class="muted"></div>
+      <div id="partsTable"></div>
+    </section>
+
+    <section class="panel">
+      <h2>検証グラフ</h2>
+      <p class="muted">外的負荷の分解（term_speed / term_slope / term_surface）と G(t) を時系列で表示します。</p>
+
+      <div class="row">
+        <label class="toggle">
+          <input type="checkbox" id="chkOnlyReady" checked />
+          標準化成立日（t≥29）のみ表示
+        </label>
+      </div>
+
+      <div class="charts">
+        <div class="chart">
+          <h3 class="sub">外的負荷の補正項（倍率）</h3>
+          <canvas id="chartExtTerms" width="900" height="260"></canvas>
+          <div class="muted">term_speed（Vratio^2）, term_slope, term_surface</div>
+        </div>
+
+        <div class="chart">
+          <h3 class="sub">G(t) / max S_k</h3>
+          <canvas id="chartSpike" width="900" height="260"></canvas>
+          <div class="muted">G(t), max S_k（標準化未成立日は欠損）</div>
+        </div>
+
+        <div class="chart">
+          <h3 class="sub">部位別 S_k(t)（7本）</h3>
+          <canvas id="chartPartsS" width="900" height="320"></canvas>
+          <div class="muted">S=0:平常 / S&gt;0:急増 / S&lt;0:回復（標準化未成立日は欠損）</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== 人体ビュー モーダル ===== -->
+  <div id="bodyModal" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close="1"></div>
+
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-label="人体ビュー">
+      <div class="modal-header">
+        <h2>人体ビュー（7部位）</h2>
+        <div class="row" style="gap:8px; align-items:center;">
+          <span class="muted">色: S_k(t)（0=平常 / +急増 / −回復）</span>
+          <button id="btnBodyClose" type="button">閉じる</button>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div class="two-col">
+          <div>
+            <svg id="bodySvg" viewBox="0 0 240 420" width="280" height="420">
+              <g opacity="0.18">
+                <circle cx="120" cy="40" r="26"></circle>
+                <rect x="88" y="70" width="64" height="110" rx="28"></rect>
+                <rect x="78" y="170" width="84" height="70" rx="28"></rect>
+                <rect x="92" y="240" width="28" height="140" rx="14"></rect>
+                <rect x="120" y="240" width="28" height="140" rx="14"></rect>
+                <rect x="86" y="380" width="40" height="16" rx="8"></rect>
+                <rect x="114" y="380" width="40" height="16" rx="8"></rect>
+              </g>
+
+              <rect id="part-腰部" x="92" y="120" width="56" height="32" rx="10"></rect>
+              <rect id="part-股関節" x="84" y="160" width="72" height="36" rx="14"></rect>
+              <rect id="part-大腿" x="92" y="210" width="56" height="58" rx="18"></rect>
+              <rect id="part-膝関節" x="92" y="270" width="56" height="24" rx="10"></rect>
+              <rect id="part-下腿" x="92" y="296" width="56" height="62" rx="18"></rect>
+              <rect id="part-足関節" x="92" y="360" width="56" height="16" rx="8"></rect>
+              <rect id="part-足部" x="86" y="378" width="68" height="20" rx="10"></rect>
+            </svg>
+          </div>
+
+          <div>
+            <div class="panel" style="margin:0;">
+              <h3 class="sub">凡例</h3>
+              <div class="grid2">
+                <div>回復</div><div><span class="legend-box" data-kind="recovery"></span> S&lt;0</div>
+                <div>平常</div><div><span class="legend-box" data-kind="neutral"></span> S=0</div>
+                <div>急増</div><div><span class="legend-box" data-kind="increase"></span> 0&lt;S&lt;θ</div>
+                <div>警告</div><div><span class="legend-box" data-kind="warn"></span> S&gt;=θ（θ=<span id="bodyTheta"></span>）</div>
+              </div>
+
+              <h3 class="sub" style="margin-top:12px;">部位別（当日）</h3>
+              <div id="bodyTable"></div>
+              <div class="muted" id="bodyHint"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== スパイク日一覧 モーダル ===== -->
+  <div id="spikeModal" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close="1"></div>
+
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-label="スパイク日一覧">
+      <div class="modal-header">
+        <h2>スパイク日一覧（寄与分解）</h2>
+        <div class="row" style="gap:8px; align-items:center;">
+          <button id="btnDownloadSpikeCSV" type="button">CSV保存</button>
+          <button id="btnSpikeClose" type="button">閉じる</button>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <p class="muted">
+          外的総負荷は積モデルなので、前日比を対数分解します：
+          ΔlnL_ext = ΔlnN + 2Δln(V/Vref) + Δln(slope) + Δln(surface)
+        </p>
+        <div id="spikeList"></div>
+        <div class="muted" id="spikeListHint"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./js/pages/output.js"></script>
+</body>
+</html>

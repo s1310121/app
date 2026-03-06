@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./css/base.css" />
+  <title>Sensitivity</title>
+</head>
+<body>
+  <header class="app-header">
+    <h1>感度解析（パラメータ sweep）</h1>
+    <div class="toolbar">
+      <button id="btnBack" type="button">出力に戻る</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="panel">
+      <h2>説明</h2>
+      <p class="muted">
+        出力（results）に保存された日次 input を復元し、各パラメータ組合せで再計算してサマリCSVを出力します。
+      </p>
+      <ul class="muted">
+        <li>最終日の G / maxS</li>
+        <li>期間内ピーク maxS（ピーク日・部位）</li>
+        <li>θ超過回数（maxS &gt; θ）</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>パラメータ範囲</h2>
+      <p class="muted">カンマ区切りで入力してください（例: 0.1,0.25,0.4）</p>
+
+      <div class="grid3">
+        <label>rho（速度近位化）<input id="rho" value="0.10,0.25,0.40"></label>
+        <label>Delta（下り膝補正）<input id="Delta" value="0.05,0.10,0.15"></label>
+        <label>ks（路面）<input id="ks" value="0.2,0.5,0.8"></label>
+
+        <label>kG_plus<input id="kG_plus" value="5,10,15"></label>
+        <label>kG_minus<input id="kG_minus" value="5,10,15"></label>
+        <label>Vref<input id="Vref" value="2.5,3.0,3.5"></label>
+      </div>
+
+      <div class="row" style="gap:12px; align-items:center;">
+        <button id="btnRun" type="button">sweep実行 → CSV保存</button>
+        <span id="status" class="muted"></span>
+      </div>
+      <div id="errors" class="muted" style="margin-top:8px;"></div>
+    </section>
+  </main>
+
+  <script type="module" src="./js/pages/sensitivity.js"></script>
+</body>
+</html>
